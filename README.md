@@ -5,7 +5,7 @@
 
 This automation project will use [Vagrant](https://www.vagrantup.com/downloads.html) to create 3 virtual servers using [Virtualbox](https://www.virtualbox.org/wiki/Downloads).
 
-After building your environment with Vagrant and running the "[provision.yml](provision.yml)" playbook, you will have a 3 node MariaDB cluster with 1 master, 1 slave and a Maxscale database proxy.
+After completing the "Setup" instructions below, you will have a 3 node MariaDB cluster with 1 master, 1 slave and a Maxscale database proxy.
 
 You will then be ready to test the "[upgrade.yml](upgrade.yml)" playbook.  This script can be used in your own environments to upgrade MariaDB servers without taking an outage. See the animated image below for more info.
 
