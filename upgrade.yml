@@ -1,0 +1,125 @@
+---
+
+- hosts: "mx1"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Putting 'db2' In Maintenance Mode"
+    uri:
+      url: http://127.0.0.1:8989/v1/servers/db2/set?state=maintenance
+      method: PUT
+      user: admin
+      password: mariadb
+      status_code: 204
+
+- hosts: "db2"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Removing Current MariaDB Repo on 'db2'"
+    file:
+      path: /etc/yum.repos.d/mariadb.repo
+      state: absent
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Removing Current MariaDB Repo on 'db2'"
+    file:
+      path: /etc/apt/sources.list.d/mariadb.list
+      state: absent
+    when: ansible_os_family == 'Debian'
+
+  - name: "Installing New MariaDB Repo on 'db2'"
+    shell: curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version=mariadb-{{ mariadb_version }} --mariadb-maxscale-version={{ maxscale_version }}
+    args:
+      warn: False
+
+  - name: "Upgrading 'db2'"
+    package:
+      name: '*'
+      state: latest
+
+- hosts: "mx1"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Clearing 'db2' Maintenance Mode"
+    uri:
+      url: http://127.0.0.1:8989/v1/servers/db2/clear?state=maintenance
+      method: PUT
+      user: admin
+      password: mariadb
+      status_code: 204
+
+  - name: "Switching Master From 'db1' To 'db2'"
+    uri:
+      url: http://127.0.0.1:8989/v1/maxscale/modules/mariadbmon/switchover?DatabaseMonitor&db2&db1
+      method: POST
+      user: admin
+      password: mariadb
+      force_basic_auth: yes
+      status_code: 204
+
+  - name: "Putting 'db1' In Maintenance Mode"
+    uri:
+      url: http://127.0.0.1:8989/v1/servers/db1/set?state=maintenance
+      method: PUT
+      user: admin
+      password: mariadb
+      status_code: 204
+
+- hosts: "db1"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Removing Current MariaDB Repo on 'db1'"
+    file:
+      path: /etc/yum.repos.d/mariadb.repo
+      state: absent
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Removing Current MariaDB Repo on 'db1'"
+    file:
+      path: /etc/apt/sources.list.d/mariadb.list
+      state: absent
+    when: ansible_os_family == 'Debian'
+
+  - name: "Installing New MariaDB Repo on 'db1'"
+    shell: curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version=mariadb-{{ mariadb_version }} --mariadb-maxscale-version={{ maxscale_version }}
+    args:
+      warn: False
+
+  - name: "Upgrading 'db1'"
+    package:
+      name: '*'
+      state: latest
+
+- hosts: "mx1"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Clearing 'db1' Maintenance Mode"
+    uri:
+      url: http://127.0.0.1:8989/v1/servers/db1/clear?state=maintenance
+      method: PUT
+      user: admin
+      password: mariadb
+      status_code: 204
+
+  - name: "Switching Master From 'db2' To 'db1'"
+    uri:
+      url: http://127.0.0.1:8989/v1/maxscale/modules/mariadbmon/switchover?DatabaseMonitor&db1&db2
+      method: POST
+      user: admin
+      password: mariadb
+      force_basic_auth: yes
+      status_code: 204

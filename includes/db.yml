@@ -1,0 +1,104 @@
+---
+
+- hosts: "mariadb"
+  become: True
+  become_user: root
+  vars_files:
+    - 'distro/{{ ansible_os_family|lower }}.yml'
+
+  tasks:
+
+  - name: "Installing Some Basic Packages"
+    package:
+      name: '{{ packages }}'
+      state: present
+    vars:
+      packages:
+      - '{{ nano }}'
+      - '{{ mysql_python }}'
+      - '{{ pigz }}'
+      - '{{ socat }}'
+
+  - name: "Installing MariaDB Packages"
+    package:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - '{{ mariadb_server }}'
+      - '{{ mariadb_client }}'
+      - '{{ mariadb_rocks }}'
+      - '{{ mariadb_backup }}'
+
+  - name: "Installing Spider Plugin"
+    package:
+      name: '{{ mariadb_spider }}'
+      state: present
+    when: spider_on == 1 and ansible_os_family == 'Debian'
+
+  - name: "Creating MariaDB Log Directory"
+    file:
+      path: /var/log/mysql
+      state: directory
+      mode: 0755
+      owner: mysql
+      group: mysql
+
+  - name: "Removing Default Config Files"
+    file:
+      state: '{{ item }}'
+      path: /etc/my.cnf.d/
+    with_items:
+      - absent
+      - directory
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating server.cnf"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/my.cnf.d/server.cnf
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating my.cnf"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/mysql/my.cnf
+    when: ansible_os_family == 'Debian'
+
+  - name: "Creating timeouts.conf Template"
+    template:
+      src: ../templates/timeouts.j2
+      dest: /etc/systemd/system/mariadb.service.d/timeouts.conf
+
+  - name: "Reloading SystemD"
+    command: systemctl daemon-reload
+
+  - name: "Stopping MariaDB"
+    systemd:
+      name: mysql
+      state: stopped
+
+  - name: "Finding Unnecessary Log Files"
+    find:
+      paths: /var/lib/mysql/
+      patterns: '*.err*,*.bad*,mysql-bin.*'
+    register: logs_to_delete
+
+  - name: "Removing Unnecessary Log Files"
+    file:
+      path: '{{ item.path }}'
+      state: absent
+    with_items: '{{ logs_to_delete.files }}'
+
+  - name: "Starting MariaDB"
+    systemd:
+      name: mysql
+      enabled: yes
+      state: started
+
+  - name: "Activating Spider Plugin"
+    mysql_db:
+      state: import
+      name: all
+      target: /usr/share/mysql/install_spider.sql
+    when: spider_on == 1 and ansible_os_family == 'RedHat'

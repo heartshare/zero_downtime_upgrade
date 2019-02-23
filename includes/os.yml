@@ -1,0 +1,62 @@
+---
+
+- hosts: "all"
+  become: True
+  become_user: root
+  vars_files:
+    - 'distro/{{ ansible_os_family|lower }}.yml'
+
+  tasks:
+
+  - name: "Setting Selinux To Permissive"
+    selinux:
+      policy: targeted
+      state: permissive
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Installing Debian Utilities"
+    package:
+      name: '{{ packages }}'
+      state: latest
+      force_apt_get: True
+    vars:
+      packages:
+        - python-minimal
+        - aptitude
+    when: ansible_os_family == 'Debian'
+
+  - name: "Install EPEL Release"
+    package:
+      name: 'epel-release'
+      state: latest
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Setting Soft Open File Limits"
+    pam_limits:
+      domain: '*'
+      limit_type: soft
+      limit_item: nofile
+      value: 65535
+
+  - name: "Setting Hard Open File Limits"
+    pam_limits:
+      domain: '*'
+      limit_type: hard
+      limit_item: nofile
+      value: 65535
+
+  - name: "Adjusting OS Swappiness"
+    sysctl:
+      name: vm.swappiness
+      value: 1
+      state: present
+
+  - name: "Installing MariaDB Repo"
+    shell: curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version=mariadb-{{ mariadb_version }} --mariadb-maxscale-version={{ maxscale_version }}
+    args:
+      warn: False
+
+  - name: "Upgrading All Packages"
+    package:
+      name: '*'
+      state: latest

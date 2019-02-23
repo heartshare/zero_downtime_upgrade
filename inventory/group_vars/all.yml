@@ -1,0 +1,27 @@
+---
+
+db1_private_ip: 10.10.10.10
+db2_private_ip: 10.10.10.11
+db3_private_ip:
+dba_pass: demo_password
+dba_user: dba
+encryption_on: 0
+ethernet_interface: eth1
+galera_on: 0
+mariadb_port: 3306
+mariadb_version: 10.3
+maxscale_pass: demo_password
+maxscale_user: maxscale
+maxscale_version: 2.3
+mx1_private_ip:
+mx2_private_ip:
+myrocks_on: 0
+pid: /var/lib/mysql/mysql.pid
+repli_pass: demo_password
+repli_user: repli
+replication_on: 1
+socket: /var/lib/mysql/mysql.sock
+spider_on: 0
+sst_pass: demo_password
+sst_user: sst
+volume_iops: 2000

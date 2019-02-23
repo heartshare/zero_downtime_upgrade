@@ -1,0 +1,60 @@
+---
+
+- hosts: "maxscale"
+  become: True
+  become_user: root
+
+  tasks:
+
+  - name: "Installing MaxScale"
+    package:
+      name: maxscale
+      state: present
+
+  - name: "Removing Old Secrets"
+    file:
+      path: /var/lib/maxscale/.secrets
+      state: absent
+
+  - name: "Creating New Secrets"
+    command: /bin/maxkeys /var/lib/maxscale/
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating New Secrets"
+    command: /usr/bin/maxkeys /var/lib/maxscale/
+    when: ansible_os_family == 'Debian'
+
+  - name: "Changing Owner Of Secrets"
+    file:
+      path: /var/lib/maxscale/.secrets
+      state: touch
+      owner: maxscale
+      group: maxscale
+
+  - name: "Creating Encrypted Password"
+    command: /bin/maxpasswd /var/lib/maxscale/ {{ maxscale_pass }}
+    register: hexadecimal
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating Encrypted Password"
+    command: /usr/bin/maxpasswd /var/lib/maxscale/ {{ maxscale_pass }}
+    register: hexadecimal
+    when: ansible_os_family == 'Debian'
+
+  - name: "Copying maxscale.cnf"
+    template:
+      src: ../templates/maxscale.j2
+      dest: /etc/maxscale.cnf
+
+  - name: "Creating MaxScale Extra Folder"
+    file:
+      path: /etc/maxscale.cnf.d/
+      state: directory
+      owner: maxscale
+      group: maxscale
+
+  - name: "Restarting MaxScale"
+    systemd:
+      name: maxscale
+      enabled: True
+      state: restarted
