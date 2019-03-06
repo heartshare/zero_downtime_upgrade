@@ -36,6 +36,12 @@
     register: hexadecimal
     when: ansible_os_family == 'RedHat'
 
+  - name: "Copying maxscale.cnf"
+    template:
+      src: ../templates/maxscale.j2
+      dest: /etc/maxscale.cnf
+    when: ansible_os_family == 'RedHat'
+
   - name: "Creating Encrypted Password"
     command: /usr/bin/maxpasswd /var/lib/maxscale/ {{ maxscale_pass }}
     register: hexadecimal
@@ -45,6 +51,7 @@
     template:
       src: ../templates/maxscale.j2
       dest: /etc/maxscale.cnf
+    when: ansible_os_family == 'Debian'
 
   - name: "Creating MaxScale Extra Folder"
     file:
