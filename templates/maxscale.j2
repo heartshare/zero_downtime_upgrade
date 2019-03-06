@@ -1,6 +1,9 @@
 [maxscale]
 threads=auto
 admin_host=0.0.0.0
+{% if inventory_hostname == 'maxscale2' %}
+passive=true
+{% endif %}
 
 [DatabaseMonitor]
 type=monitor
